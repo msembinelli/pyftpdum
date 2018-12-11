@@ -1,7 +1,7 @@
 import unittest
 
 from pyftpdum import *
-from yaml_storage import YAMLStorage
+from yaml_storage import YamlStorage
 from tinydb import TinyDB, Query
 
 

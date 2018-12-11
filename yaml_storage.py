@@ -19,7 +19,7 @@ yaml.add_representer(str, represent_uni)
 yaml.add_representer(Document, represent_doc)
 
 
-class YAMLStorage(Storage):
+class YamlStorage(Storage):
     def __init__(self, filename):
         self.filename = filename
         touch(filename, False)

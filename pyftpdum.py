@@ -1,7 +1,10 @@
 import os
+import errno
 import shutil
 import sys
 import click
+import ftplib
+import time
 import multiprocessing
 
 from yaml_storage import YamlStorage
@@ -51,15 +54,75 @@ def index(db, destination):
         pass
 
 
-def download(db, host, host_path, destination):
+# def download(db, host, host_path, destination):
+def download():
     """
     Recursively download all folders in the FTP directory,
     if their folder names do not already exist in the database.
     This prevents downloading the same file twice, even if it has
     been deleted on the destination drive.
     """
-    with TinyDB(db.filepath, storage=db.storage, default_table=db.table_name) as pyftpdum_db:
+    # with TinyDB(db.filepath, storage=db.storage, default_table=db.table_name) as pyftpdum_db:
+    #    pass
+    #!/usr/bin/python
+
+    server = "test"
+    user = "test"
+    password = "password"
+    source = "/testsrc/"
+    destination = "testdst/"
+    interval = 0.05
+
+    ftp = ftplib.FTP(server)
+    ftp.login(user, password)
+    print("downloading files...")
+    downloadFiles(ftp, interval, source, destination)
+
+
+def downloadFiles(ftp, interval, path, destination):
+    try:
+        ftp.cwd(path)
+        mkdir_p(destination)
+        os.chdir(destination)
+        mkdir_p(destination[0:len(destination)-1] + path)
+        print("Created: " + destination[0:len(destination)-1] + path)
+    except OSError:
         pass
+    except ftplib.error_perm:
+        print("Error: could not change to " + path)
+        sys.exit("Ending Application")
+
+    log = []
+    ftp.retrlines('LIST', callback=log.append)
+    files = (' '.join(line.split()[8:]) for line in log)
+    filelist = list(files)
+
+    for file in filelist:
+        time.sleep(interval)
+        try:
+            ftp.cwd(path + file + "/")
+            downloadFiles(ftp, interval, path + file + "/", destination)
+        except ftplib.error_perm:
+            os.chdir(destination[0:len(destination)-1] + path)
+
+            try:
+                with open(os.path.join(destination + path, file), "wb") as dl:
+                    ftp.retrbinary("RETR " + file, dl.write)
+                print("Downloaded: " + file)
+            except:
+                print("Error: File could not be downloaded " +
+                      file)
+    return
+
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 def unpack(db, destination):
